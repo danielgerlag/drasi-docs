@@ -88,7 +88,7 @@ services:
 
 The HTTP source exposes:
 
-- `GET /health` — health check (returns service status)
+- `GET /health` — health check (returns service status and enabled features)
 - `POST /sources/{sourceId}/events` — submit a single event
 - `POST /sources/{sourceId}/events/batch` — submit multiple events
 
@@ -362,6 +362,8 @@ Each mapping transforms a matched request into a graph event.
 
 #### Conditions (`when`)
 
+Conditions currently support matching against `header` (HTTP headers) and `field` (payload fields). Path parameters and query parameters are available in templates via `{{route.param}}` and `{{query.param}}`, but cannot be used in `when` conditions.
+
 ```yaml
 # Match an HTTP header value
 when:
@@ -444,6 +446,8 @@ Templates have access to these variables:
 | `query` | Query string parameters | `{{query.filter}}` |
 | `method` | HTTP method | `{{method}}` |
 | `path` | Request path | `{{path}}` |
+
+> **Note**: Header names are lowercase in the `headers` context. Access `Content-Type` via `{{headers.content-type}}`.
 
 ### Template helpers
 
@@ -578,11 +582,11 @@ webhooks:
             id: "order-{{payload.id}}"
             labels: ["Order"]
             properties:
-              orderNumber: "{{payload.order_number}}"
+              order_number: "{{payload.order_number}}"
               total: "{{payload.total_price}}"
               currency: "{{payload.currency}}"
-              customerEmail: "{{payload.email}}"
-              lineItems: "{{payload.line_items}}"
+              customer_email: "{{payload.email}}"
+              line_items: "{{payload.line_items}}"
 ```
 
 ### Example: Generic REST API with path parameters
@@ -621,7 +625,7 @@ webhooks:
 | `id` | string | required | Unique source identifier. Used as `{sourceId}` in Standard Mode request URLs. |
 | `autoStart` | boolean | `true` | Whether Drasi Server starts the source on startup. |
 | `host` | string | required | Address to bind the HTTP server to. |
-| `port` | integer | required | Port to listen on. |
+| `port` | integer | `8080` | Port to listen on. |
 | `endpoint` | string | none | Optional custom endpoint path. |
 | `timeoutMs` | integer | `10000` | Request timeout in milliseconds. |
 | `bootstrapProvider` | object | none | Optional bootstrap provider to preload initial state. See [Configure Bootstrap Providers](/drasi-server/how-to-guides/configuration/configure-bootstrap-providers/). |
@@ -729,6 +733,10 @@ Only one of `equals`, `contains`, or `regex` should be specified per condition.
 | `from` | string | **Required.** Handlebars template for the source node ID. |
 | `to` | string | **Required.** Handlebars template for the target node ID. |
 | `properties` | object or string | Key-value map of properties, or a single Handlebars expression string to spread an object. |
+
+{{< alert title="Builder-only settings" color="info" >}}
+The upstream HTTP source plugin also supports `dispatch_mode` (Channel/Broadcast) and `dispatch_buffer_capacity` settings via its Rust builder API. These are not currently exposed through Drasi Server YAML configuration.
+{{< /alert >}}
 
 ## Adaptive batching
 
