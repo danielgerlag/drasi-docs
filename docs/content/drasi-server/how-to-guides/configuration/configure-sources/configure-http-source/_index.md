@@ -639,9 +639,96 @@ webhooks:
 
 ### Webhook settings
 
+When the `webhooks` key is present, [Webhook Mode](#webhook-mode) is activated and Standard Mode endpoints are disabled.
+
+#### `webhooks` (top-level)
+
 | Field | Type | Default | Description |
-|---|---:|---:|---|
-| `webhooks` | object | none | Activates Webhook Mode when present. See [Webhook Mode](#webhook-mode). |
+|---|---|---|---|
+| `errorBehavior` | string | `reject` | Default error handling for all routes. Values: `reject`, `acceptAndLog`, `acceptSilent`. |
+| `cors` | object | none | CORS configuration. When absent, CORS is disabled. |
+| `routes` | array | **required** | Array of route definitions (at least one required). |
+
+#### `webhooks.cors`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | boolean | `true` | Enable/disable CORS. |
+| `allowOrigins` | string[] | `["*"]` | Allowed origins. Use `["*"]` for any. |
+| `allowMethods` | string[] | `["GET","POST","PUT","PATCH","DELETE","OPTIONS"]` | Allowed HTTP methods. |
+| `allowHeaders` | string[] | `["Content-Type","Authorization","X-Requested-With"]` | Allowed request headers. |
+| `exposeHeaders` | string[] | `[]` | Headers to expose to the browser. |
+| `allowCredentials` | boolean | `false` | Whether to allow cookies/auth headers. |
+| `maxAge` | integer | `3600` | Preflight cache duration in seconds. |
+
+#### `webhooks.routes[]`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `path` | string | **required** | URL path pattern. Supports `:param` syntax for path parameters (e.g., `/api/:resource/:id`). |
+| `methods` | string[] | all methods | HTTP methods to accept. |
+| `auth` | object | none | Authentication configuration for this route. |
+| `errorBehavior` | string | inherits global | Override global error behavior for this route. |
+| `mappings` | array | **required** | Array of payload-to-event mapping definitions. |
+
+#### `webhooks.routes[].auth.signature` (HMAC)
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `type` | string | **required** | Algorithm: `hmac-sha256` or `hmac-sha1`. |
+| `secretEnv` | string | **required** | Name of the environment variable containing the shared secret. |
+| `header` | string | **required** | HTTP header containing the signature (e.g., `X-Hub-Signature-256`). |
+| `prefix` | string | `""` | Prefix to strip from the header value before verification (e.g., `sha256=`). |
+| `encoding` | string | `hex` | Signature encoding: `hex` or `base64`. |
+
+#### `webhooks.routes[].auth.bearer`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `tokenEnv` | string | **required** | Name of the environment variable containing the expected bearer token. |
+
+#### `webhooks.routes[].mappings[]`
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `when` | object | none | Condition that must match for this mapping to apply. If omitted, the mapping always applies. |
+| `operation` | string | none | Static graph operation: `insert`, `update`, or `delete`. |
+| `operationFrom` | string | none | Dot-path to derive the operation from the payload (e.g., `payload.action`). Mutually exclusive with `operation`. |
+| `elementType` | string | **required** | Graph element type: `node` or `relation`. |
+| `effectiveFrom` | string | none | Handlebars template resolving to a timestamp. Auto-detects seconds/ms/ns/ISO 8601 format. |
+| `template` | object | **required** | Element template defining the graph element shape. |
+
+#### `webhooks.routes[].mappings[].when` (condition)
+
+| Field | Type | Description |
+|---|---|---|
+| `header` | string | Match against an HTTP header value (mutually exclusive with `field`). |
+| `field` | string | Match against a payload field using dot notation (mutually exclusive with `header`). |
+| `equals` | string | Exact match. |
+| `contains` | string | Substring match. |
+| `regex` | string | Regular expression match. |
+
+Only one of `equals`, `contains`, or `regex` should be specified per condition.
+
+#### `webhooks.routes[].mappings[].template` (element template)
+
+**Node template:**
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | **Required.** Handlebars template for the node ID. |
+| `labels` | string[] | **Required.** Array of label strings (may contain Handlebars expressions). |
+| `properties` | object or string | Key-value map of properties (values may be Handlebars templates), or a single Handlebars expression string to spread an object as properties. |
+
+**Relation template:**
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | **Required.** Handlebars template for the relation ID. |
+| `labels` | string[] | **Required.** Array of label strings (may contain Handlebars expressions). |
+| `from` | string | **Required.** Handlebars template for the source node ID. |
+| `to` | string | **Required.** Handlebars template for the target node ID. |
+| `properties` | object or string | Key-value map of properties, or a single Handlebars expression string to spread an object. |
 
 ## Adaptive batching
 
