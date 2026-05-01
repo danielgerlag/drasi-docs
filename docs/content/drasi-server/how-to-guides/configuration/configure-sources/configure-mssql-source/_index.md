@@ -119,7 +119,7 @@ GRANT SELECT ON dbo.customers TO drasi_user;
 
 The `startPosition` configuration determines what happens when no LSN checkpoint is found in the state store:
 
-- **`current`** (default): Start from the current LSN, ignoring historical changes. Use this when you only want new changes from now onwards.
+- **`current`** (default): Start from the current LSN, ignoring historical changes. Use this when you only want new changes going forward.
 - **`beginning`**: Start from the earliest available LSN in CDC retention. Use this to capture all retained historical changes.
 
 {{< alert title="Note" color="info" >}}
